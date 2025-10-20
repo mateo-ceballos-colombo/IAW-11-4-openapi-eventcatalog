@@ -1,0 +1,234 @@
+---
+import catalog from '@utils/eventcatalog-config/catalog';
+import Search from '@components/Search/Search.astro';
+import { buildUrl } from '@utils/url-builder';
+import { showEventCatalogBranding, showCustomBranding } from '@utils/feature';
+import { getSession } from 'auth-astro/server';
+import { isAuthEnabled, isSSR } from '@utils/feature';
+import { EnvironmentDropdown } from './EnvironmentDropdown';
+
+let session = null;
+if (isAuthEnabled()) {
+  session = await getSession(Astro.request);
+}
+
+const logo = {
+  src: ('/' + (catalog?.logo?.src || 'logo.png')).replace(/^\/+/, '/'),
+  alt: catalog?.logo?.alt || 'Event Catalog',
+  text: catalog?.logo?.text || 'EventCatalog',
+};
+
+const repositoryUrl = catalog?.repositoryUrl || 'https://github.com/event-catalog/eventcatalog';
+---
+
+<nav
+  id="eventcatalog-header"
+  class="fixed top-0 left-0 right-0 h-header bg-white border-b border-gray-100 py-3 font-bold text-xl bg-opacity-20 backdrop-blur-sm z-10"
+>
+  <div class="px-4 sm:px-4 lg:px-4">
+    <div class="flex justify-between items-center">
+      <div class="flex-shrink-0 flex items-center w-3/12">
+        <a href={buildUrl(catalog.landingPage || '/')} class="flex space-x-2 items-center">
+          {logo.src && <img alt={logo.alt} src={buildUrl(logo.src, true)} class="w-8 h-8" />}
+          {logo.text && <span class="hidden sm:inline-block text-[1em]">{logo.text}</span>}
+        </a>
+      </div>
+
+      <div class="hidden lg:block flex-grow w-6/12 px-10">
+        <!-- Page find only works on static builds, disable for SSR builds for now -->
+        {!isSSR() && <Search />}
+      </div>
+
+      <div class="hidden md:block w-3/12">
+        {
+          session ? (
+            <div class="flex items-center space-x-4 justify-end pr-2">
+              {catalog.environments && catalog.environments.length > 0 && (
+                <EnvironmentDropdown environments={catalog.environments} client:load />
+              )}
+              <div class="relative">
+                <button
+                  id="profile-menu-button"
+                  type="button"
+                  class="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-full"
+                  aria-expanded="false"
+                  aria-haspopup="true"
+                >
+                  {session.user?.image && !session.user?.image?.includes('googleusercontent.com') ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user?.name || 'User'}
+                      class="h-8 w-8 rounded-full border-2 border-gray-200 hover:border-gray-300 transition-colors"
+                    />
+                  ) : (
+                    <div class="h-8 w-8 rounded-full border-2 border-gray-200 hover:border-gray-300 transition-colors bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
+                      {session.user?.name
+                        ? session.user.name
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')
+                            .substring(0, 2)
+                            .toUpperCase()
+                        : 'U'}
+                    </div>
+                  )}
+                </button>
+                <div
+                  id="profile-dropdown"
+                  class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100 overflow-hidden"
+                >
+                  <div class="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                    <div class="font-medium">{session.user?.name || 'User'}</div>
+                    {session.user?.email && <div class="text-gray-500">{session.user.email}</div>}
+                  </div>
+                  <button
+                    id="signout-btn"
+                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div class="flex items-center space-x-4 justify-end pr-2">
+                {catalog.environments && catalog.environments.length > 0 && (
+                  <EnvironmentDropdown environments={catalog.environments} client:load />
+                )}
+                {isAuthEnabled() && (
+                  <button
+                    id="okta-signin-btn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Sign In
+                  </button>
+                )}
+                {showEventCatalogBranding() && (
+                  <ul class="flex space-x-8">
+                    <li>
+                      <a href="https://discord.com/invite/3rjaZMmrAm">
+                        <img src={buildUrl('/icons/discord.svg', true)} class="h-7 w-7" />
+                      </a>
+                    </li>
+                    <li>
+                      <a href="https://github.com/event-catalog/eventcatalog">
+                        <img src={buildUrl('/icons/github.svg', true)} class="h-7 w-7" />
+                      </a>
+                    </li>
+                  </ul>
+                )}
+                {showCustomBranding() && !showEventCatalogBranding() && (
+                  <ul class="flex space-x-8">
+                    <li>
+                      <a href={repositoryUrl} class="text-gray-500 hover:text-gray-600 focus:outline-none focus:text-gray-600">
+                        <img src={buildUrl('/icons/github.svg', true)} class="h-7 w-7" />
+                      </a>
+                    </li>
+                  </ul>
+                )}
+              </div>
+            </>
+          )
+        }
+      </div>
+
+      <div class="md:hidden">
+        <button
+          id="menu-toggle"
+          type="button"
+          class="text-gray-500 hover:text-gray-600 focus:outline-none focus:text-gray-600"
+          aria-label="Toggle menu"
+        >
+          <svg viewBox="0 0 24 24" class="h-6 w-6 fill-current">
+            <path
+              fill-rule="evenodd"
+              d="M4 5h16a1 1 0 0 1 0 2H4a1 1 0 1 1 0-2zm0 6h16a1 1 0 0 1 0 2H4a1 1 0 0 1 0-2zm0 6h16a1 1 0 0 1 0 2H4a1 1 0 0 1 0-2z"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="md:hidden hidden mt-4">
+      <ul class="flex flex-col space-y-8 my-4 mb-8">
+        <!-- {
+          navItems.map((item) => {
+            const isActive = currentPath.includes(item.href);
+            return (
+              <li class={`font-light ${isActive ? 'font-bold text-primary' : ''}`}>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            );
+          })
+        } -->
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id="eventcatalog-header-spacer" class="h-header"></div>
+<!-- Spacer to prevent content from being hidden under the fixed header -->
+
+<script>
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  import { signOut } from 'auth-astro/client';
+
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+
+  // Profile dropdown functionality
+  const profileButton = document.getElementById('profile-menu-button');
+  const profileDropdown = document.getElementById('profile-dropdown');
+
+  if (profileButton && profileDropdown) {
+    profileButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('hidden');
+      profileButton.setAttribute('aria-expanded', !profileDropdown.classList.contains('hidden') ? 'true' : 'false');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!profileButton.contains(e.target as Node) && !profileDropdown.contains(e.target as Node)) {
+        profileDropdown.classList.add('hidden');
+        profileButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Close dropdown on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !profileDropdown.classList.contains('hidden')) {
+        profileDropdown.classList.add('hidden');
+        profileButton.setAttribute('aria-expanded', 'false');
+        profileButton.focus();
+      }
+    });
+
+    document.getElementById('signout-btn')?.addEventListener('click', async () => {
+      await signOut();
+    });
+  }
+</script>
+
+<style>
+  @media (max-width: 768px) {
+    nav {
+      transition: all 0.3s ease-out;
+    }
+
+    #mobile-menu {
+      transition: all 0.3s ease-out;
+      max-height: 0;
+      overflow: hidden;
+    }
+
+    #mobile-menu:not(.hidden) {
+      max-height: 500px; /* Adjust this value as needed */
+    }
+  }
+</style>

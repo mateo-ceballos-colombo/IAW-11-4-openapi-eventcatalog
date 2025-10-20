@@ -1,0 +1,16 @@
+extends: "spectral:oas"
+rules:
+  info-contact: off
+  operation-description: warn
+  operation-operationId: warn
+  operation-success-response: error
+  # Custom naming rule example (resource plural end)
+  x-path-plural:
+    description: "Los paths principales deberían ser en plural (excepto /health)"
+    message: "El path {{value}} debería ser un recurso en plural."
+    given: $.paths[*]~key
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(\/health$|\/[a-z0-9-]+s(\/|$))"

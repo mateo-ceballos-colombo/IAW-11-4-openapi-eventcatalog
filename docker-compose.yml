@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -8,3 +7,27 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+  mongo:
+    image: mongo:7
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: ordersdb
+    volumes:
+      - mongo_data:/data/db
+  api:
+    build: .
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      PORT: 3100
+      MONGO_URL: mongodb://mongo:27017/ordersdb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      DISABLE_RABBITMQ: 'false'
+    ports:
+      - '3100:3100'
+    command: ["node","dist/index.js"]
+
+volumes:
+  mongo_data:

@@ -1,0 +1,73 @@
+{
+  "collections": [
+    {
+      "hasSchema": true,
+      "name": "changelogs"
+    },
+    {
+      "hasSchema": true,
+      "name": "channels"
+    },
+    {
+      "hasSchema": true,
+      "name": "chatPrompts"
+    },
+    {
+      "hasSchema": true,
+      "name": "commands"
+    },
+    {
+      "hasSchema": true,
+      "name": "containers"
+    },
+    {
+      "hasSchema": true,
+      "name": "customPages"
+    },
+    {
+      "hasSchema": true,
+      "name": "designs"
+    },
+    {
+      "hasSchema": true,
+      "name": "domains"
+    },
+    {
+      "hasSchema": true,
+      "name": "entities"
+    },
+    {
+      "hasSchema": true,
+      "name": "events"
+    },
+    {
+      "hasSchema": true,
+      "name": "flows"
+    },
+    {
+      "hasSchema": true,
+      "name": "pages"
+    },
+    {
+      "hasSchema": true,
+      "name": "queries"
+    },
+    {
+      "hasSchema": true,
+      "name": "services"
+    },
+    {
+      "hasSchema": true,
+      "name": "teams"
+    },
+    {
+      "hasSchema": true,
+      "name": "ubiquitousLanguages"
+    },
+    {
+      "hasSchema": true,
+      "name": "users"
+    }
+  ],
+  "entries": {}
+}

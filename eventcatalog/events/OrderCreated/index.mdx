@@ -1,0 +1,68 @@
+---
+id: OrderCreated
+name: OrderCreated
+version: v1
+summary: Evento emitido al crear una orden (estado CREATED) en el Order Service.
+producers:
+  - order-service
+---
+
+<!-- Copia del contenido de README.md para cumplir con patrón index.md requerido por EventCatalog -->
+
+# OrderCreated
+
+Representa la creación exitosa de una orden. Producido por el servicio `Order Service` al procesar `POST /orders`.
+
+| Campo        | Tipo        | Obligatorio | Descripción |
+|--------------|-------------|-------------|-------------|
+| id           | string      | Sí          | Identificador único de la orden |
+| customerName | string      | Sí          | Nombre del cliente |
+| items        | Item[]      | Sí          | Ítems de la orden |
+| total        | number      | Sí          | Suma calculada de (quantity * price) |
+| createdAt    | string(ISO) | Sí          | Timestamp de creación |
+| status       | string      | Sí          | Estado inicial (CREATED) |
+
+`Item`:
+| Campo    | Tipo   | Obligatorio | Descripción |
+|----------|--------|-------------|-------------|
+| sku      | string | Sí          | Código del producto |
+| quantity | number | Sí          | Cantidad solicitada |
+| price    | number | Sí          | Precio unitario |
+
+## Productor
+- Order Service API (bounded context: Orders)
+
+## Consumidores actuales
+- Logger interno (queue: `orders.created.log`)
+
+## Consumidores potenciales
+- Facturación, Inventario, Notificaciones, Analytics
+
+## Ejemplo de payload
+```json
+{
+  "id": "68f6412b11e09e3e143d4f49",
+  "customerName": "Alice",
+  "items": [{ "sku": "A1", "quantity": 2, "price": 10 }],
+  "total": 20,
+  "createdAt": "2025-10-20T14:03:23.686Z",
+  "status": "CREATED"
+}
+```
+
+## Esquema formal
+Ver `schema.json`.
+
+## Versionado
+- v1 inicial.
+
+## Idempotencia
+El identificador `id` permite deduplicar.
+
+## Motivación
+Desacoplar la creación de órdenes de procesos posteriores.
+
+## Changelog
+| Fecha | Versión | Cambio | Notas |
+|-------|---------|--------|-------|
+| 2025-10-20 | v1 | Versión inicial | Definición base |

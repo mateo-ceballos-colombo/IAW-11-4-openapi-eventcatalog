@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { createOrderSchema } from './orders.validation';
-import { createOrder, getOrder, listOrders, updateOrder, cancelOrder, searchOrdersByCustomer } from './orders.service';
+import { createOrder, getOrder, listOrders, updateOrder, cancelOrder, searchOrdersByCustomer, getOrderStats } from './orders.service';
 import { publishOrderCreated } from '../messaging/rabbit';
 
 export const ordersRouter = Router();
@@ -22,8 +23,16 @@ ordersRouter.get('/search', async (req: Request, res: Response) => {
   res.json(results);
 });
 
+// Stats MUST be declared before any ":id" param route to avoid Express capturing "stats" as an id.
+ordersRouter.get('/stats', async (_req: Request, res: Response) => {
+  const stats = await getOrderStats();
+  res.json(stats);
+});
+
 ordersRouter.get('/:id', async (req: Request, res: Response) => {
-  const order = await getOrder(req.params.id);
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id format' });
+  const order = await getOrder(id);
   if (!order) return res.status(404).json({ error: 'Not found' });
   res.json(order);
 });
@@ -34,15 +43,19 @@ ordersRouter.get('/', async (_req: Request, res: Response) => {
 });
 
 ordersRouter.put('/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id format' });
   const items = req.body.items;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'items array required' });
-  const updated = await updateOrder(req.params.id, items);
+  const updated = await updateOrder(id, items);
   if (!updated) return res.status(404).json({ error: 'Not found' });
   res.json(updated);
 });
 
 ordersRouter.delete('/:id', async (req: Request, res: Response) => {
-  const cancelled = await cancelOrder(req.params.id);
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'Invalid id format' });
+  const cancelled = await cancelOrder(id);
   if (!cancelled) return res.status(404).json({ error: 'Not found' });
   // TODO: publish OrderCancelled event similar to OrderCreated
   res.json(cancelled);

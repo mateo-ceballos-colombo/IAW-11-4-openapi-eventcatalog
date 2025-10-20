@@ -5,10 +5,18 @@ info:
   description: API REST para gestión de órdenes y emisión de eventos OrderCreated.
 servers:
   - url: http://localhost:3000
+tags:
+  - name: system
+    description: Endpoints de sistema y monitoreo.
+  - name: orders
+    description: Operaciones CRUD y búsqueda sobre órdenes.
 paths:
   /health:
     get:
       summary: Verifica el estado del servicio
+      description: Retorna un objeto con el estado general y timestamp para monitoreo.
+      operationId: getHealth
+      tags: [system]
       responses:
         '200':
           description: OK
@@ -25,6 +33,9 @@ paths:
   /orders:
     get:
       summary: Lista todas las órdenes
+      description: Recupera todas las órdenes en la base de datos con su estado actual.
+      operationId: listOrders
+      tags: [orders]
       responses:
         '200':
           description: Lista de órdenes
@@ -36,6 +47,9 @@ paths:
                   $ref: '#/components/schemas/Order'
     post:
       summary: Crea una nueva orden y publica el evento OrderCreated
+      description: Valida el payload, persiste la orden y emite el evento de dominio OrderCreated en RabbitMQ.
+      operationId: createOrder
+      tags: [orders]
       requestBody:
         required: true
         content:
@@ -63,6 +77,9 @@ paths:
   /orders/{id}:
     get:
       summary: Obtiene una orden por ID
+      description: Busca y devuelve la orden correspondiente al identificador proporcionado.
+      operationId: getOrderById
+      tags: [orders]
       parameters:
         - name: id
           in: path
@@ -80,6 +97,9 @@ paths:
           description: No encontrada
     put:
       summary: Actualiza los items de una orden
+      description: Reemplaza el arreglo completo de items y recalcula el total de la orden.
+      operationId: updateOrderItems
+      tags: [orders]
       parameters:
         - name: id
           in: path
@@ -109,6 +129,12 @@ paths:
           description: No encontrada
     delete:
       summary: Cancela una orden existente (status = CANCELLED)
+      description: |
+        Marca la orden como CANCELLED si existe y devuelve la versión modificada.
+        Futuro: publicará el evento OrderCancelled (ver Event Catalog en `eventcatalog/events/OrderCreated/` para relación y plantilla).
+        Compatibilidad: la transición CREATED -> CANCELLED es aditiva y no elimina campos existentes.
+      operationId: cancelOrder
+      tags: [orders]
       parameters:
         - name: id
           in: path
@@ -127,6 +153,9 @@ paths:
   /orders/search:
     get:
       summary: Busca órdenes por nombre de cliente
+      description: Realiza una búsqueda case-insensitive por coincidencia parcial en el nombre del cliente.
+      operationId: searchOrdersByCustomer
+      tags: [orders]
       parameters:
         - name: customer
           in: query
@@ -144,6 +173,26 @@ paths:
                   $ref: '#/components/schemas/Order'
         '400':
           description: Parámetro faltante
+  /orders/stats:
+    get:
+      summary: Estadísticas agregadas de órdenes
+      description: Devuelve cantidad total de órdenes, revenue acumulado y promedio por orden. Útil para monitoreo simple sin analytics externo.
+      operationId: getOrderStats
+      tags: [orders]
+      responses:
+        '200':
+          description: Estadísticas calculadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  totalRevenue:
+                    type: number
+                  avgOrderValue:
+                    type: number
 components:
   schemas:
     OrderItem:

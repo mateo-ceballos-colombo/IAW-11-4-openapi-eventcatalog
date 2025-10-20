@@ -1,0 +1,63 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import type { CollectionTypes } from '@types';
+import DiscoverLayout, { type Props as DiscoverLayoutProps } from '@layouts/DiscoverLayout.astro';
+import { Page } from './_index.data';
+
+export const prerender = Page.prerender;
+export const getStaticPaths = Page.getStaticPaths;
+
+const { type, data } = await Page.getData(Astro);
+
+let title = `${type} (${data.length})`;
+
+if (type === 'containers') {
+  title = `Data (${data.length})`;
+}
+
+function mapToItem(i: any) {
+  return {
+    collection: i.collection,
+    data: {
+      id: i.data.id,
+      name: i.data.name,
+      version: i.data.version,
+    },
+  };
+}
+---
+
+<DiscoverLayout
+  title={title}
+  subtitle={`Find, filter and search for any ${type} in your system.`}
+  data={data.map(
+    (d: CollectionEntry<CollectionTypes>) =>
+      ({
+        collection: d.collection,
+        data: {
+          id: d.data.id,
+          name: d.data.name,
+          summary: d.data?.summary,
+          version: d.data.version,
+          latestVersion: d.data?.latestVersion,
+          draft: d.data?.draft,
+          badges: d.data?.badges,
+          // @ts-ignore
+          consumers: d.data?.consumers?.map(mapToItem) ?? [],
+          // @ts-ignore
+          producers: d.data?.producers?.map(mapToItem) ?? [],
+          // @ts-ignore
+          receives: d.data?.receives?.map(mapToItem) ?? [],
+          // @ts-ignore
+          sends: d.data?.sends?.map(mapToItem) ?? [],
+          // @ts-ignore
+          services: d.data?.services?.map(mapToItem) ?? [],
+          // @ts-ignore
+          servicesThatWriteToContainer: d.data?.servicesThatWriteToContainer?.map(mapToItem) ?? [],
+          // @ts-ignore
+          servicesThatReadFromContainer: d.data?.servicesThatReadFromContainer?.map(mapToItem) ?? [],
+        },
+      }) as DiscoverLayoutProps<typeof type>['data'][0]
+  )}
+  type={type}
+/>

@@ -1,4 +1,5 @@
 import amqp from 'amqplib';
+import { Order } from '../orders/orders.model';
 
 let channel: amqp.Channel | null = null;
 
@@ -11,7 +12,7 @@ export async function initRabbit() {
   console.log('RabbitMQ initialized');
 }
 
-export async function publishOrderCreated(order: any) {
+export async function publishOrderCreated(order: Order) {
   if (!channel) {
     console.warn('RabbitMQ channel not ready, skipping publish');
     return;

@@ -1,0 +1,58 @@
+---
+import type { ComponentType } from 'react';
+import * as Icons from '@heroicons/react/24/solid';
+import { buildUrl } from '@utils/url-builder';
+
+interface Props {
+  href: string;
+  icon: keyof typeof Icons;
+  iconColor?: string;
+  title: string;
+  openWindow?: boolean;
+  description: string;
+}
+
+const { href, icon, title, description, openWindow, iconColor = 'text-primary' } = Astro.props;
+
+const IconComponent: ComponentType<{ className?: string }> | undefined = Icons[icon];
+
+function startsWithProtocol(str: string) {
+  // Regular expression to match common protocols (http, https, ftp, ws, etc.)
+  const regex = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//;
+  return regex.test(str);
+}
+---
+
+<div class="group">
+  <!-- Card with just the icon -->
+  <a
+    href={startsWithProtocol(href) ? href : buildUrl(href)}
+    target={openWindow ? '_blank' : '_self'}
+    class="block relative bg-white border border-gray-200 rounded-xl p-8 h-48 transition-all duration-300 ease-out hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/10 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 overflow-hidden"
+  >
+    <!-- Icon centered in card with grid background -->
+    <div class="relative h-full flex items-center justify-center">
+      <!-- Squared paper grid behind icon -->
+      <div
+        class="absolute inset-0 opacity-15"
+        style="background-image:
+        linear-gradient(rgba(147, 51, 234, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(147, 51, 234, 0.2) 1px, transparent 1px);
+        background-size: 16px 16px;"
+      >
+      </div>
+
+      {IconComponent && <IconComponent className="relative w-16 h-16 text-purple-600 stroke-1" />}
+    </div>
+  </a>
+
+  <!-- Title and description outside card -->
+  <div class="mt-4 space-y-0">
+    <h2 class="text-gray-900 text-lg font-semibold">
+      {title}
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed">
+      {description}
+    </p>
+  </div>
+</div>

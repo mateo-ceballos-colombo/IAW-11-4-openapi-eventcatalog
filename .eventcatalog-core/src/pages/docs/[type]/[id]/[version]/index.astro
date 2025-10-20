@@ -1,0 +1,654 @@
+---
+import VerticalSideBarLayout from '@layouts/VerticalSideBarLayout.astro';
+import Footer from '@layouts/Footer.astro';
+import { marked } from 'marked';
+
+import components from '@components/MDX/components';
+import NodeGraph from '@components/MDX/NodeGraph/NodeGraph.astro';
+import SchemaViewer from '@components/MDX/SchemaViewer/SchemaViewerRoot.astro';
+import Admonition from '@components/MDX/Admonition';
+
+import { getSpecificationsForService } from '@utils/collections/services';
+
+import { resourceToCollectionMap, collectionToResourceMap } from '@utils/collections/util';
+
+// SideBars
+import ServiceSideBar from '@components/SideBars/ServiceSideBar.astro';
+import MessageSideBar from '@components/SideBars/MessageSideBar.astro';
+import DomainSideBar from '@components/SideBars/DomainSideBar.astro';
+import ChannelSideBar from '@components/SideBars/ChannelSideBar.astro';
+import FlowSideBar from '@components/SideBars/FlowSideBar.astro';
+import EntitySideBar from '@components/SideBars/EntitySideBar.astro';
+import ContainerSideBar from '@components/SideBars/ContainerSideBar.astro';
+import CopyAsMarkdown from '@components/CopyAsMarkdown';
+
+import {
+  QueueListIcon,
+  RectangleGroupIcon,
+  ServerIcon,
+  BoltIcon,
+  ChatBubbleLeftIcon,
+  MagnifyingGlassIcon,
+  MapIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline';
+import { ArrowsRightLeftIcon } from '@heroicons/react/20/solid';
+import { Box, Boxes, SquarePenIcon, DatabaseIcon, DatabaseZapIcon, ShieldCheckIcon } from 'lucide-react';
+import type { CollectionTypes } from '@types';
+
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+import { getIcon } from '@utils/badges';
+import { getDeprecatedDetails } from '@utils/collections/util';
+import { buildUrl, buildEditUrlForResource } from '@utils/url-builder';
+import { getSchemasFromResource } from '@utils/collections/schemas';
+import { isEventCatalogChatEnabled, isMarkdownDownloadEnabled } from '@utils/feature';
+
+import { getMDXComponentsByName } from '@utils/markdown';
+
+import config from '@config';
+import { Page } from './_index.data';
+
+export const prerender = Page.prerender;
+export const getStaticPaths = Page.getStaticPaths;
+
+// Get data
+const props = await Page.getData(Astro);
+
+const { Content } = await render(props);
+
+const pageTitle = `${props.collection} | ${props.data.name}`.replace(/^\w/, (c) => c.toUpperCase());
+const contentBadges = props.data.badges || [];
+const editUrl =
+  props.data.editUrl || (config.editUrl && props?.filePath ? buildEditUrlForResource(config.editUrl, props?.filePath) : '');
+
+const getContentBadges = () =>
+  contentBadges.map((badge: any) => ({
+    ...badge,
+    icon: badge.icon ? getIcon(badge.icon) : null,
+  }));
+
+const getBadge = () => {
+  if (props.collection === 'services') {
+    return [{ backgroundColor: 'pink', textColor: 'pink', content: 'Service', icon: ServerIcon, class: 'text-pink-400' }];
+  }
+  if (props.collection === 'events') {
+    return [{ backgroundColor: 'orange', textColor: 'orange', content: 'Event', icon: BoltIcon, class: 'text-orange-400' }];
+  }
+  if (props.collection === 'commands') {
+    return [{ backgroundColor: 'blue', textColor: 'blue', content: 'Command', icon: ChatBubbleLeftIcon, class: 'text-blue-400' }];
+  }
+  if (props.collection === 'queries') {
+    return [
+      { backgroundColor: 'green', textColor: 'green', content: 'Query', icon: MagnifyingGlassIcon, class: 'text-green-400' },
+    ];
+  }
+  if (props.collection === 'domains') {
+    return [
+      {
+        backgroundColor: 'yellow',
+        textColor: 'yellow',
+        content: 'Domain',
+        icon: RectangleGroupIcon,
+        class: 'text-yellow-400',
+      },
+    ];
+  }
+
+  if (props.collection === 'flows') {
+    return [{ backgroundColor: 'teal', textColor: 'teal', content: 'Flow', icon: QueueListIcon, class: 'text-gray' }];
+  }
+
+  if (props.collection === 'channels') {
+    return [{ backgroundColor: 'teal', textColor: 'teal', content: 'Channel', icon: ArrowsRightLeftIcon, class: 'text-gray' }];
+  }
+
+  if (props.collection === 'containers') {
+    const badges = [];
+    const content = props.data.container_type?.charAt(0).toUpperCase() + props.data.container_type?.slice(1) || 'Database';
+
+    badges.push({ backgroundColor: 'blue', textColor: 'blue', content: content, icon: DatabaseIcon, class: 'text-gray' });
+
+    if (props.data?.technology) {
+      badges.push({
+        backgroundColor: 'indigo',
+        textColor: 'indigo',
+        content: `${props.data.technology}`,
+        icon: DatabaseZapIcon,
+      });
+    }
+
+    if (props.data?.residency) {
+      badges.push({
+        backgroundColor: 'red',
+        textColor: 'red',
+        content: `Residency: ${props.data.residency}`,
+        icon: MapIcon,
+      });
+    }
+
+    if (props.data?.retention) {
+      badges.push({
+        backgroundColor: 'green',
+        textColor: 'green',
+        content: `Retention: ${props.data.retention}`,
+        icon: ClockIcon,
+      });
+    }
+
+    if (props.data?.access_mode) {
+      badges.push({
+        backgroundColor: 'green',
+        textColor: 'green',
+        content: `Access Mode: ${props.data.access_mode}`,
+        icon: ShieldCheckIcon,
+      });
+    }
+
+    return badges;
+  }
+
+  if (props.collection === 'entities') {
+    const entityBadges = [{ backgroundColor: 'purple', textColor: 'purple', content: 'Entity', icon: Box, class: 'text-gray' }];
+    if (props.data.aggregateRoot) {
+      entityBadges.push({
+        backgroundColor: 'purple',
+        textColor: 'purple',
+        content: '(Aggregate Root)',
+        icon: Boxes,
+        class: 'text-gray',
+      });
+    }
+    return entityBadges;
+  }
+
+  return [{ backgroundColor: 'teal', textColor: 'teal', content: '', icon: QueueListIcon, class: 'text-gray' }];
+};
+
+const getSpecificationBadges = () => {
+  const badges = [];
+
+  const specifications = getSpecificationsForService(props);
+
+  const asyncapiSpecs = specifications.filter((spec) => spec.type === 'asyncapi');
+  const openapiSpecs = specifications.filter((spec) => spec.type === 'openapi');
+  const graphQLSpecs = specifications.filter((spec) => spec.type === 'graphql');
+
+  if (openapiSpecs.length > 0) {
+    for (const spec of openapiSpecs) {
+      badges.push({
+        backgroundColor: 'white',
+        textColor: 'gray',
+        content: spec.name || 'OpenAPI Spec',
+        iconURL: buildUrl('/icons/openapi.svg', true),
+        class: 'text-black hover:underline',
+        id: 'open-api-badge',
+        url: buildUrl(`/docs/${props.collection}/${props.data.id}/${props.data.version}/spec/${spec.filenameWithoutExtension}`),
+      });
+    }
+  }
+
+  if (asyncapiSpecs.length > 0) {
+    for (const spec of asyncapiSpecs) {
+      badges.push({
+        backgroundColor: 'white',
+        textColor: 'gray',
+        content: spec.name || 'AsyncAPI Spec',
+        iconURL: buildUrl('/icons/asyncapi.svg', true),
+        class: 'text-black hover:underline',
+        id: 'asyncapi-badge',
+        url: buildUrl(
+          `/docs/${props.collection}/${props.data.id}/${props.data.version}/asyncapi/${spec.filenameWithoutExtension}`
+        ),
+      });
+    }
+  }
+
+  if (graphQLSpecs.length > 0) {
+    for (const spec of graphQLSpecs) {
+      badges.push({
+        backgroundColor: 'white',
+        textColor: 'gray',
+        content: spec.name || 'GraphQL Spec',
+        iconURL: buildUrl('/icons/graphql.svg', true),
+        class: 'text-black hover:underline',
+        id: 'graphql-badge',
+        url: buildUrl(
+          `/docs/${props.collection}/${props.data.id}/${props.data.version}/graphql/${spec.filenameWithoutExtension}`
+        ),
+      });
+    }
+  }
+
+  return badges;
+};
+
+const badges = [...getBadge(), ...getContentBadges(), ...getSpecificationBadges()];
+
+// Index only the latest version
+const pagefindAttributes =
+  props.data.version === props.data.latestVersion
+    ? {
+        'data-pagefind-body': '',
+        'data-pagefind-meta': `title:${pageTitle}`,
+      }
+    : {};
+
+const {
+  hasDeprecated,
+  message: deprecatedMessage,
+  isMarkedAsDeprecated,
+  deprecatedDate: formattedDate,
+} = getDeprecatedDetails(props as unknown as CollectionEntry<CollectionTypes>);
+
+let friendlyCollectionName = props.collection.slice(0, props.collection.length - 1);
+friendlyCollectionName = friendlyCollectionName === 'querie' ? 'query' : friendlyCollectionName;
+
+const schemasForResource = getSchemasFromResource(props);
+
+const generatePromptForResource = (props: any) => {
+  return `
+    Please tell me more about the ${props.collection.slice(0, props.collection.length - 1)} -  ${props.data.name} v${props.data.version} in this catalog.
+  `;
+};
+
+// Handle node graphs in the markdown
+let nodeGraphs = getMDXComponentsByName(props.body || '', 'NodeGraph') || [];
+
+// Get props for the node graph (when no id is passed, we assume its the current page)
+const nodeGraphPropsForPage = nodeGraphs.find((nodeGraph: any) => nodeGraph.id === undefined) || ({} as any);
+
+// This will render the graph for this page
+nodeGraphs.push({
+  id: props.data.id,
+  version: props.data.version,
+  type: collectionToResourceMap[props.collection as keyof typeof collectionToResourceMap],
+  ...nodeGraphPropsForPage,
+  search: nodeGraphPropsForPage?.search ? nodeGraphPropsForPage.search === 'true' : true,
+  legend: nodeGraphPropsForPage?.legend ? nodeGraphPropsForPage.legend === 'true' : true,
+});
+---
+
+<VerticalSideBarLayout title={pageTitle} description={props.data.summary}>
+  <main class="flex sm:px-8 docs-layout h-full" {...pagefindAttributes}>
+    <div class="flex docs-layout w-full">
+      <div class="w-full lg:mr-2 pr-8 overflow-y-auto py-8">
+        <div class="border-b border-gray-200 md:pb-2">
+          <div>
+            <div class="flex justify-between items-center">
+              <h2
+                id="doc-page-header"
+                class={`text-2xl md:text-4xl font-bold text-black ${props.data.deprecated && hasDeprecated ? 'text-red-500' : ''}`}
+              >
+                {props.data.name}
+                <span class="">(v{props.data.version})</span>
+              </h2>
+              <div class="hidden lg:block">
+                <CopyAsMarkdown
+                  client:only="react"
+                  schemas={schemasForResource}
+                  chatQuery={generatePromptForResource(props)}
+                  chatEnabled={isEventCatalogChatEnabled()}
+                  markdownDownloadEnabled={isMarkdownDownloadEnabled()}
+                  editUrl={editUrl}
+                />
+              </div>
+            </div>
+            {
+              isMarkedAsDeprecated && hasDeprecated && (
+                <Admonition
+                  className="w-full"
+                  type="alert"
+                  title={formattedDate ? `This ${friendlyCollectionName} was deprecated on ${formattedDate}` : `Deprecated`}
+                >
+                  <div>
+                    {!deprecatedMessage && (
+                      <p>
+                        The {friendlyCollectionName} has been marked as deprecated
+                        {formattedDate && ` on ${formattedDate}`}.
+                      </p>
+                    )}
+                    {deprecatedMessage && <div class="prose prose-sm max-w-none" set:html={marked.parse(deprecatedMessage)} />}
+                  </div>
+                </Admonition>
+              )
+            }
+            {
+              isMarkedAsDeprecated && !hasDeprecated && (
+                <Admonition type="warning" title={`This ${friendlyCollectionName} will be deprecated on ${formattedDate}`}>
+                  <div>
+                    {!deprecatedMessage && (
+                      <p>
+                        The {friendlyCollectionName} will be deprecated on {formattedDate}.
+                      </p>
+                    )}
+                    {deprecatedMessage && <div class="prose prose-sm max-w-none" set:html={marked.parse(deprecatedMessage)} />}
+                  </div>
+                </Admonition>
+              )
+            }
+
+            <h2 class="text-lg pt-2 text-gray-500 font-light">{props.data.summary}</h2>
+            {
+              badges && (
+                <div class="flex flex-wrap gap-3 py-4">
+                  {badges.map((badge: any) => {
+                    return (
+                      <a href={badge.url || '#'} class="group transition-all duration-200 hover:scale-105">
+                        <span
+                          id={badge.id || ''}
+                          class={`
+                            inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
+                            bg-${badge.backgroundColor || 'white'}-50 border border-${badge.backgroundColor || 'gray'}-200
+                            text-${badge.textColor || 'gray'}-700 shadow-sm
+                            hover:bg-${badge.backgroundColor || 'purple'}-100 hover:border-${badge.backgroundColor || 'purple'}-300
+                            hover:shadow-md hover:text-${badge.textColor || 'purple'}-800
+                            transition-all duration-200 ease-out
+                            ${badge.class ? badge.class : ''}
+                          `}
+                        >
+                          {badge.icon && (
+                            <badge.icon
+                              className={`w-4 h-4 flex-shrink-0 text-${badge.textColor || 'gray'}-600 group-hover:text-${badge.textColor || 'purple'}-700 transition-colors duration-200`}
+                            />
+                          )}
+                          {badge.iconURL && (
+                            <img
+                              src={badge.iconURL}
+                              class="w-4 h-4 flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity duration-200"
+                              alt=""
+                            />
+                          )}
+                          <span class={`group-hover:text-${badge.textColor || 'purple'}-800 transition-colors duration-200`}>
+                            {badge.content}
+                          </span>
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )
+            }
+
+            {
+              props.data.draft && (
+                <Admonition type="warning" title={props.data?.draft?.title || `Draft ${friendlyCollectionName}`}>
+                  <div>
+                    {!props.data.draft.message && (
+                      <p>This resource has been marked as a draft and may still be under development.</p>
+                    )}
+                    {props.data.draft.message && (
+                      <div class="prose prose-sm max-w-none" set:html={marked.parse(props.data.draft.message)} />
+                    )}
+                  </div>
+                </Admonition>
+              )
+            }
+          </div>
+        </div>
+
+        <div data-pagefind-ignore>
+          {
+            props.data.version !== props.data.latestVersion && (
+              <div class="rounded-md bg-gradient-to-r from-purple-50 to-purple-100 p-4 not-prose my-4">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-purple-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path
+                        fill-rule="evenodd"
+                        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                        clip-rule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-purple-800">New version found</h3>
+                    <div class="mt-2 text-sm text-purple-700">
+                      <p>
+                        You are looking at a previous version of the {props.collection.slice(0, props.collection.length - 1)}{' '}
+                        <strong>{props.data.name}</strong>.{' '}
+                        <a
+                          class="underline hover:text-primary block pt-2"
+                          href={buildUrl(`/docs/${props.collection}/${props.data.id}/${props.data.latestVersion}`)}
+                        >
+                          The latest version of this {props.collection.slice(0, props.collection.length - 1)} is
+                          <span>v{props.data.latestVersion}</span> &rarr;
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+        </div>
+
+        <div class="prose prose-md py-4 w-full">
+          <Content components={components(props)} />
+        </div>
+        <div data-pagefind-ignore>
+          <!-- @ts-ignore -->
+          <!-- <SchemaViewer id={props.data.id} catalog={props.catalog} filePath={props.filePath} /> -->
+          <SchemaViewer id={props.data.id} filePath={props.filePath} />
+
+          {
+            nodeGraphs.length > 0 &&
+              nodeGraphs.map((nodeGraph: any) => {
+                const collection = resourceToCollectionMap[nodeGraph.type as keyof typeof resourceToCollectionMap];
+                return (
+                  <NodeGraph
+                    id={nodeGraph.id}
+                    version={nodeGraph.version}
+                    collection={collection}
+                    title={nodeGraph.title}
+                    mode={nodeGraph.mode || 'simple'}
+                    linksToVisualiser={true}
+                    showSearch={nodeGraph.search ?? true}
+                    showLegend={nodeGraph.legend ?? true}
+                    href={{
+                      label: 'Open in Visualiser',
+                      url: buildUrl(`/visualiser/${collection}/${nodeGraph.id}/${nodeGraph.version}`),
+                    }}
+                  />
+                );
+              })
+          }
+        </div>
+        <Footer />
+        <!-- Add edit this page button  with icon and text-->
+        <div class="flex justify-end">
+          <!-- Built with EventCatalog -->
+          {
+            editUrl && (
+              <div class="flex justify-end">
+                <a href={editUrl} class="text-sm text-gray-700 hover:text-gray-700 border border-gray-200 rounded-md p-2">
+                  <SquarePenIcon className="w-4 h-4 inline-block mr-1" />
+                  Edit this page
+                </a>
+              </div>
+            )
+          }
+        </div>
+      </div>
+      <aside class="hidden lg:block sticky top-0 pb-10 w-96 overflow-y-auto py-2" data-pagefind-ignore>
+        <!-- @ts-ignore -->
+        {
+          (props?.collection === 'events' || props.collection === 'commands' || props.collection === 'queries') && (
+            <MessageSideBar message={props} />
+          )
+        }
+        {props?.collection === 'services' && <ServiceSideBar service={props} />}
+        {props?.collection === 'domains' && <DomainSideBar domain={props} />}
+        {props?.collection === 'channels' && <ChannelSideBar channel={props} />}
+        {props?.collection === 'flows' && <FlowSideBar flow={props} />}
+        {props?.collection === 'entities' && <EntitySideBar entity={props} />}
+        {props?.collection === 'containers' && <ContainerSideBar container={props} />}
+      </aside>
+    </div>
+  </main>
+
+  <style is:global>
+    .docs-layout .prose {
+      max-width: none;
+      overflow: auto;
+    }
+
+    .mermaid svg {
+      margin: 1em auto 2em;
+    }
+
+    /* Fix for architecture diagrams */
+    .mermaid[data-content*='architecture'] svg {
+      max-width: 350px !important;
+      margin: 0;
+      /* width: 100px !important; */
+    }
+  </style>
+
+  <script define:vars={{ props, config }}>
+    // Fix to pass information to componets that are client side only
+    // and require catalog information
+    window.eventcatalog = {};
+    // @ts-ignore
+    window.eventcatalog[`${props.collection}-${props.data.id}`] = props.catalog;
+
+    window.eventcatalog.mermaid = config.mermaid;
+  </script>
+
+  <script>
+    // Listen for Astro transititions
+    document.addEventListener('astro:page-load', () => {
+      const graphs = document.getElementsByClassName('mermaid');
+      if (document.getElementsByClassName('mermaid').length > 0) {
+        renderDiagrams(graphs);
+      }
+    });
+
+    /**
+     * Renders mermaid diagrams in the page
+     * @param {HTMLCollectionOf<HTMLElement>} graphs - The collection of mermaid graph elements
+     */
+    async function renderDiagrams(graphs: any) {
+      const { default: mermaid } = await import('mermaid');
+
+      if (window.eventcatalog.mermaid) {
+        const { icons } = await import('@iconify-json/logos');
+        const { iconPacks = [], enableSupportForElkLayout = false } = window.eventcatalog.mermaid ?? {};
+
+        if (iconPacks.length > 0) {
+          const iconPacksToRegister = iconPacks.map((name: any) => {
+            return {
+              name,
+              icons,
+            };
+          });
+
+          mermaid.registerIconPacks(iconPacksToRegister);
+        }
+
+        if (enableSupportForElkLayout) {
+          const { default: elkLayouts } = await import('@mermaid-js/layout-elk/dist/mermaid-layout-elk.core.mjs');
+          mermaid.registerLayoutLoaders(elkLayouts);
+        }
+      }
+
+      mermaid.initialize({
+        // fontSize: 2,
+        flowchart: {
+          curve: 'linear',
+          rankSpacing: 0,
+          nodeSpacing: 0,
+        },
+        startOnLoad: false,
+        fontFamily: 'var(--sans-font)',
+        // @ts-ignore This works, but TS expects a enum for some reason
+        theme: 'light',
+        architecture: {
+          useMaxWidth: true,
+        },
+      });
+
+      for (const graph of graphs) {
+        const content = graph.getAttribute('data-content');
+        if (!content) continue;
+        let svg = document.createElement('svg');
+        const id = (svg.id = 'mermaid-' + Math.round(Math.random() * 100000));
+        graph.appendChild(svg);
+        mermaid.render(id, content).then((result) => {
+          graph.innerHTML = result.svg;
+        });
+      }
+    }
+
+    const graphs = document.getElementsByClassName('mermaid');
+    if (document.getElementsByClassName('mermaid').length > 0) {
+      renderDiagrams(graphs);
+    }
+
+    // Make renderDiagrams available globally for accordion component
+    window.renderDiagrams = renderDiagrams;
+  </script>
+
+  <script>
+    import('pako').then(({ deflate }: any) => {
+      document.addEventListener('astro:page-load', () => {
+        const blocks = document.getElementsByClassName('plantuml');
+        if (blocks.length > 0) {
+          renderPlantUML(blocks, deflate);
+        }
+      });
+
+      function renderPlantUML(blocks: any, deflate: any) {
+        for (const block of blocks) {
+          const content = block.getAttribute('data-content');
+          if (!content) continue;
+
+          const encoded = encodePlantUML(content, deflate);
+          const img = document.createElement('img');
+          img.src = `https://www.plantuml.com/plantuml/svg/~1${encoded}`;
+          img.alt = 'PlantUML diagram';
+          img.loading = 'lazy';
+          block.innerHTML = '';
+          // Add class to the img
+          img.classList.add('mx-auto');
+          block.appendChild(img);
+        }
+      }
+
+      function encodePlantUML(text: any, deflate: any) {
+        const utf8encoded = new TextEncoder().encode(text);
+        const compressed = deflate(utf8encoded, { level: 9 });
+        return encode64(compressed);
+      }
+
+      const encode64 = (data: any) => {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_';
+        let str = '';
+        let i = 0;
+        while (i < data.length) {
+          let b1 = data[i++];
+          let b2 = i < data.length ? data[i++] : 0;
+          let b3 = i < data.length ? data[i++] : 0;
+
+          let c1 = b1 >> 2;
+          let c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+          let c3 = ((b2 & 0xf) << 2) | (b3 >> 6);
+          let c4 = b3 & 0x3f;
+
+          str += chars[c1] + chars[c2] + chars[c3] + chars[c4];
+        }
+        return str;
+      };
+
+      const graphs = document.getElementsByClassName('plantuml');
+      if (document.getElementsByClassName('plantuml').length > 0) {
+        renderPlantUML(graphs, deflate);
+      }
+
+      window.renderPlantUML = (graphs: any) => {
+        renderPlantUML(graphs, deflate);
+      };
+    });
+  </script>
+</VerticalSideBarLayout>

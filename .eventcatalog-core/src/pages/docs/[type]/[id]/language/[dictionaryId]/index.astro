@@ -1,0 +1,206 @@
+---
+import RectangleGroupIcon from '@heroicons/react/24/outline/RectangleGroupIcon';
+import Footer from '@layouts/Footer.astro';
+import VerticalSideBarLayout from '@layouts/VerticalSideBarLayout.astro';
+import { buildUrl } from '@utils/url-builder';
+import { ClientRouter } from 'astro:transitions';
+import { marked } from 'marked';
+import * as LucideIcons from 'lucide-react';
+
+import { Page } from './_index.data';
+
+export const prerender = Page.prerender;
+export const getStaticPaths = Page.getStaticPaths;
+
+const props = await Page.getData(Astro);
+
+const { ubiquitousLanguage } = props;
+const pageTitle = `${props.type} | ${ubiquitousLanguage.name}`.replace(/^\w/, (c) => c.toUpperCase());
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+const badges = [
+  {
+    backgroundColor: 'yellow',
+    textColor: 'yellow',
+    content: props.domain.name,
+    icon: RectangleGroupIcon,
+    class: 'text-yellow-400',
+    href: buildUrl(`/docs/${props.type}/${props.domainId}`),
+  },
+];
+---
+
+<VerticalSideBarLayout title={pageTitle} description={ubiquitousLanguage.summary}>
+  <main class="flex sm:px-8 docs-layout h-full max-w-7xl" data-pagefind-body data-pagefind-meta={`title:${pageTitle}`}>
+    <div class="flex docs-layout w-full">
+      <div class="w-full lg:mr-2 pr-8 overflow-y-auto py-8 min-h-[50em]">
+        {/* Breadcrumb */}
+        <nav class="mb-4 flex items-center space-x-2 text-sm text-gray-500" aria-label="Breadcrumb">
+          <a
+            href={buildUrl(`/docs/${props.type}/${props.domainId}/${props.domain.latestVersion}`)}
+            class="hover:text-gray-700 hover:underline flex items-center gap-2"
+          >
+            <RectangleGroupIcon className="h-4 w-4" />
+            {props.domain.name}
+          </a>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+          </svg>
+          <a
+            href={buildUrl(`/docs/${props.type}/${props.domainId}/language`)}
+            class="hover:text-gray-700 hover:underline flex items-center gap-2"
+          >
+            {
+              (() => {
+                const BookOpen = LucideIcons.BookOpen;
+                //@ts-ignore
+                return <BookOpen className="h-4 w-4" />;
+              })()
+            }
+            Ubiquitous Language Explorer
+          </a>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+          </svg>
+          <span class="text-gray-900">{ubiquitousLanguage.name}</span>
+        </nav>
+
+        <div class="border-b border-gray-200 flex justify-between items-start md:pb-2">
+          <div>
+            <h2 id="doc-page-header" class="text-2xl md:text-4xl font-bold text-black">
+              {ubiquitousLanguage.name}
+            </h2>
+            <p class="text-lg pt-2 text-gray-500 font-light">{ubiquitousLanguage.summary}</p>
+            <!-- Add bage -->
+            {
+              badges && (
+                <div class="flex flex-wrap py-2 pt-4">
+                  {badges.map((badge: any) => {
+                    return (
+                      <a href={badge.href || '#'} class="pb-2">
+                        <span
+                          id={badge.id || ''}
+                          class={`text-sm font-light text-gray-500 px-2 py-1 rounded-md mr-2  bg-gradient-to-b  from-${badge.backgroundColor}-100 to-${badge.backgroundColor}-200 space-x-1 border border-${badge.backgroundColor}-200 text-${badge.textColor}-800 flex items-center ${badge.class ? badge.class : ''} `}
+                        >
+                          {badge.icon && <badge.icon className="w-4 h-4 inline-block mr-1 " />}
+                          {badge.iconURL && <img src={badge.iconURL} class="w-5 h-5 inline-block " />}
+                          <span>{badge.content}</span>
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        {
+          ubiquitousLanguage.description && (
+            <div class="prose prose-md py-4 max-w-none" set:html={marked.parse(ubiquitousLanguage.description)} />
+          )
+        }
+
+        {
+          !ubiquitousLanguage.description && (
+            <div class="prose prose-md py-4 max-w-none">
+              <p>No description for {ubiquitousLanguage.name} available.</p>
+            </div>
+          )
+        }
+
+        <Footer />
+      </div>
+    </div>
+    <ClientRouter />
+  </main>
+
+  <script>
+    function initializeSearch() {
+      const searchInput = document.getElementById('searchInput');
+      const termCards = document.querySelectorAll('.term-card');
+      const noSearchResults = document.getElementById('noSearchResults');
+
+      searchInput?.addEventListener('input', (e) => {
+        const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+        let visibleCount = 0;
+
+        termCards.forEach((card) => {
+          const title = card.querySelector('h3')?.textContent?.toLowerCase() || '';
+          const description = card.querySelector('p')?.textContent?.toLowerCase() || '';
+          const matches = title.includes(searchTerm) || description.includes(searchTerm);
+
+          card.classList.toggle('hidden', !matches);
+          if (matches) visibleCount++;
+        });
+
+        // Show/hide no results message
+        if (noSearchResults) {
+          noSearchResults.classList.toggle('hidden', visibleCount > 0);
+        }
+      });
+    }
+
+    function initializeShowMore() {
+      const cards = document.querySelectorAll('.term-card');
+
+      cards.forEach((card) => {
+        const newCard = card.cloneNode(true);
+        if (card.parentNode) {
+          card.parentNode.replaceChild(newCard, card);
+          // Initially show summary
+          const summary = (newCard as Element).querySelector('.summary-text');
+          summary?.classList.add('visible');
+        }
+        newCard.addEventListener('click', () => {
+          const description = (newCard as Element).querySelector('.description-text');
+          const summary = (newCard as Element).querySelector('.summary-text');
+          const showMoreText = (newCard as Element).querySelector('.show-more-text');
+
+          if (description && summary && showMoreText) {
+            (newCard as Element).classList.toggle('expanded');
+            description.classList.toggle('visible');
+            summary.classList.toggle('visible');
+            showMoreText.textContent = description.classList.contains('visible') ? 'Show less' : 'Show more';
+          }
+        });
+      });
+    }
+
+    function highlightMatchingTerm() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const termId = urlParams.get('id');
+
+      if (termId) {
+        const cards = document.querySelectorAll('.term-card');
+        cards.forEach((card) => {
+          const termName = card.querySelector('h3')?.textContent?.trim();
+          if (termName?.toLowerCase() === termId.toLowerCase()) {
+            // Add highlight class
+            card.classList.add('highlighted');
+            (card as HTMLElement).click();
+
+            setTimeout(() => {
+              // Scroll into view
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+          }
+        });
+      }
+    }
+
+    document.addEventListener('astro:page-load', () => {
+      initializeShowMore();
+      initializeSearch();
+      highlightMatchingTerm();
+    });
+
+    initializeShowMore();
+    initializeSearch();
+    highlightMatchingTerm();
+  </script>
+</VerticalSideBarLayout>

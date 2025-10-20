@@ -1,0 +1,7 @@
+{
+  "name": "Ordering",
+  "summary": "Dominio responsable de la captura y gestión del ciclo de vida de órdenes de clientes.",
+  "tags": ["orders", "core-domain"],
+  "services": ["order-service"],
+  "events": ["OrderCreated"]
+}

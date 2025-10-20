@@ -1,0 +1,68 @@
+---
+import Footer from '@layouts/Footer.astro';
+import VerticalSideBarLayout from '@layouts/VerticalSideBarLayout.astro';
+import components from '@components/MDX/page-components';
+import mdxComponents from '@components/MDX/components';
+import NodeGraph from '@components/MDX/NodeGraph/NodeGraph.astro';
+import { getMDXComponentsByName } from '@utils/markdown';
+import { resourceToCollectionMap } from '@utils/collections/util';
+import { buildUrl } from '@utils/url-builder';
+import { isCustomLandingPageEnabled } from '@utils/feature';
+import DefaultAstroLandingPage from './_index.astro';
+
+let nodeGraphs: any[] = [];
+let CustomContent = null;
+
+import path from 'path';
+import { existsSync, readFileSync } from 'fs';
+
+const props = Astro.props;
+
+const pathToUserDefinedLandingPage = path.join(process.env.PROJECT_DIR || '', 'pages/homepage.astro');
+
+if (existsSync(pathToUserDefinedLandingPage) && isCustomLandingPageEnabled()) {
+  const customPages = import.meta.glob('/**/homepage.astro', { eager: true });
+  // @ts-ignore
+  CustomContent = Object.values(customPages)[0]?.default || null;
+
+  const rawContent = readFileSync(pathToUserDefinedLandingPage, 'utf-8');
+  nodeGraphs = getMDXComponentsByName(rawContent, 'NodeGraph') || [];
+}
+---
+
+{
+  CustomContent ? (
+    <VerticalSideBarLayout title="EventCatalog">
+      <main class="flex sm:px-8 docs-layout h-full">
+        <div class="flex docs-layout w-full">
+          <div class="w-full lg:mr-2 pr-8 overflow-y-auto py-8">
+            <div class="w-full !max-w-none">
+              <CustomContent components={{ ...components, ...mdxComponents(props) }} />
+            </div>
+            <Footer />
+          </div>
+        </div>
+        {nodeGraphs.length > 0 &&
+          nodeGraphs.map((nodeGraph: any) => {
+            const collection = resourceToCollectionMap[nodeGraph.type as keyof typeof resourceToCollectionMap];
+            return (
+              <NodeGraph
+                id={nodeGraph.id}
+                version={nodeGraph.version}
+                collection={collection}
+                title={nodeGraph.title}
+                mode="simple"
+                linksToVisualiser={true}
+                href={{
+                  label: 'Open in Visualiser',
+                  url: buildUrl(`/visualiser/${collection}/${nodeGraph.id}/${nodeGraph.version}`),
+                }}
+              />
+            );
+          })}
+      </main>
+    </VerticalSideBarLayout>
+  ) : (
+    <DefaultAstroLandingPage />
+  )
+}

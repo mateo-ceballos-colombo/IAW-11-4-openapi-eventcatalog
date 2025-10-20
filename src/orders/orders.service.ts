@@ -33,7 +33,24 @@ export async function searchOrdersByCustomer(customer: string): Promise<Order[]>
   return docs.map(toOrder);
 }
 
-function toOrder(doc: any): Order {
+export async function getOrderStats(): Promise<{ count: number; totalRevenue: number; avgOrderValue: number }> {
+  const docs = await OrderModel.find({}, 'total').exec();
+  const count = docs.length;
+  const totalRevenue = docs.reduce((sum, d: any) => sum + (d.total || 0), 0);
+  const avgOrderValue = count === 0 ? 0 : parseFloat((totalRevenue / count).toFixed(2));
+  return { count, totalRevenue, avgOrderValue };
+}
+
+interface OrderDocShape {
+  _id: { toString(): string } | string;
+  customerName: string;
+  items: Order['items'];
+  total: number;
+  createdAt: Date;
+  status: Order['status'];
+}
+
+function toOrder(doc: OrderDocShape): Order {
   return {
     id: doc._id.toString(),
     customerName: doc.customerName,

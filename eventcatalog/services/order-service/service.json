@@ -1,0 +1,14 @@
+{
+  "name": "Order Service",
+  "id": "order-service",
+  "summary": "API que gestiona el ciclo de vida de órdenes: creación, actualización, cancelación y publicación de eventos.",
+  "owners": ["team-ordering"],
+  "publishedEvents": ["OrderCreated"],
+  "consumedEvents": [],
+  "links": [
+    {"title": "OpenAPI", "url": "http://localhost:3100/docs"},
+    {"title": "Repositorio", "url": "https://example.com/your-repo"}
+  ],
+  "tags": ["orders", "api", "service"],
+  "boundContext": "Ordering"
+}

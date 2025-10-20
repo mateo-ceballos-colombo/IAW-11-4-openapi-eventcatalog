@@ -1,0 +1,71 @@
+---
+import fs from 'node:fs';
+import OpenAPISpec from './_OpenAPI.tsx';
+
+import { DocumentMinusIcon } from '@heroicons/react/24/outline';
+import VerticalSideBarLayout from '@layouts/VerticalSideBarLayout.astro';
+import './_styles.css';
+import { Page } from './_[filename].data.ts';
+import { getAbsoluteFilePathForAstroFile } from '@utils/files';
+
+export const prerender = Page.prerender;
+export const getStaticPaths = Page.getStaticPaths;
+
+// Get data
+const props = await Page.getData(Astro);
+
+// @ts-ignore
+const { collection, data, catalog, filePath, filename, path: relativeSpecPath } = props;
+const fileName = filename || 'openapi.yml';
+
+const pathToSpec = getAbsoluteFilePathForAstroFile(filePath, fileName);
+const fileExists = fs.existsSync(pathToSpec);
+const isRemote = relativeSpecPath.includes('https://');
+
+let content = '';
+
+// Capitalize the first letter of a string
+const pageTitle = `${collection} | ${data.name} | OpenAPI Spec`.replace(/^\w/, (c) => c.toUpperCase());
+
+// Index only the latest version
+const pagefindAttributes =
+  data.version === data.latestVersion
+    ? {
+        'data-pagefind-body': '',
+        'data-pagefind-meta': `title:${pageTitle}`,
+      }
+    : {};
+
+if (fileExists && !isRemote) {
+  content = fs.readFileSync(pathToSpec, 'utf8');
+}
+
+if (isRemote) {
+  // Fetch the content from the remote path
+  content = await fetch(relativeSpecPath).then((res) => res.text());
+}
+---
+
+<VerticalSideBarLayout title={pageTitle}>
+  {
+    !fileExists && !isRemote ? (
+      <div class="text-center h-screen  flex flex-col justify-center ">
+        <DocumentMinusIcon className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 class="mt-2 text-sm font-semibold text-gray-900">No OpenAPI spec file found</h3>
+        <p class="mt-1 text-xs text-gray-400">
+          Could not find OpenAPI file for {data.name} in {`/${catalog.path}`}
+        </p>
+      </div>
+    ) : (
+      <div {...pagefindAttributes}>
+        {
+          // Currently, Pagefind does not index metadata (such as the title),
+          // so we need to ensure it is included as text on the page.
+          // https://github.com/CloudCannon/pagefind/issues/437
+        }
+        <h2 class="hidden">{pageTitle}</h2>
+        <OpenAPISpec client:only="react" spec={content} />
+      </div>
+    )
+  }
+</VerticalSideBarLayout>

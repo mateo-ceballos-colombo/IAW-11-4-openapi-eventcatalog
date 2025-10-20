@@ -1,0 +1,9 @@
+{
+  "name": "OrderCreated",
+  "version": "v1",
+  "summary": "Se emite cuando una orden es creada y persistida con estado CREATED.",
+  "producer": "order-service",
+  "schemaFile": "schema.json",
+  "tags": ["orders", "lifecycle", "creation"],
+  "visibility": "public"
+}

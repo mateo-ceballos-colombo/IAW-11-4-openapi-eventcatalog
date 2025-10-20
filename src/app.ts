@@ -16,6 +16,16 @@ export function createApp() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Root metadata endpoint
+  app.get('/', (_req, res) => {
+    res.json({
+      service: 'Order Service API',
+      docs: '/docs',
+      eventsCatalogDev: 'http://localhost:3000',
+      version: '1.0.0'
+    });
+  });
+
   // Swagger UI
   const openapiPath = path.join(process.cwd(), 'openapi.yaml');
   if (fs.existsSync(openapiPath)) {

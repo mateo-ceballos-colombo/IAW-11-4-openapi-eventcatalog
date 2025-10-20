@@ -1,0 +1,9 @@
+{
+  "name": "Team Ordering",
+  "id": "team-ordering",
+  "summary": "Equipo responsable del Order Service y sus eventos de negocio.",
+  "services": ["order-service"],
+  "events": ["OrderCreated"],
+  "slack": "#team-ordering",
+  "email": "ordering-team@example.com"
+}
