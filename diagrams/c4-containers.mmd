@@ -1,0 +1,11 @@
+%% C4 Containers Diagram
+C4Container
+System_Boundary(orderSystem, "Order System") {
+  Container(api, "API Express", "Node.js", "Endpoints REST y lógica de publicación eventos")
+  ContainerDb(db, "MongoDB", "Document DB", "Órdenes, estados")
+  Container(eventCatalog, "Event Catalog", "Static Site", "Documentación de eventos")
+}
+System_Ext(rabbitmq, "RabbitMQ", "Mensajería")
+Rel(api, db, "CRUD")
+Rel(api, rabbitmq, "Publish events")
+Rel(api, eventCatalog, "Genera/actualiza documentación")

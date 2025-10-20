@@ -1,0 +1,15 @@
+%% C4 Components Diagram (API)
+C4Component
+Container(api, "API Express", "Node.js") {
+  Component(routerOrders, "Orders Router", "Express Router", "Define rutas /orders")
+  Component(serviceOrders, "Orders Service", "Service", "Opera con MongoDB y reglas de negocio")
+  Component(mongoModel, "Mongoose Model", "ODM", "Mapeo Order -> colección")
+  Component(pub, "Rabbit Publisher", "amqplib", "Publica eventos")
+  Component(validation, "Validation Layer", "Zod", "Valida payloads")
+  Component(swagger, "Swagger UI", "Middleware", "Exposición de OpenAPI en /docs")
+}
+Rel(routerOrders, validation, "Valida")
+Rel(routerOrders, serviceOrders, "Invoca para CRUD")
+Rel(serviceOrders, mongoModel, "Usa modelo")
+Rel(serviceOrders, pub, "Publica evento OrderCreated")
+Rel(routerOrders, swagger, "Sirve documentación")

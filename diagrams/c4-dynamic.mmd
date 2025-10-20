@@ -1,0 +1,18 @@
+%% C4 Dynamic Diagram (Crear Orden)
+C4Dynamic
+Person(client, "Cliente")
+Container(api, "API Express")
+Component(routerOrders, "Orders Router")
+Component(validation, "Validation Layer")
+Component(serviceOrders, "Orders Service")
+Component(pub, "Rabbit Publisher")
+System_Ext(rabbitmq, "RabbitMQ")
+ContainerDb(db, "MongoDB")
+
+Rel(client, api, "POST /orders")
+Rel(api, routerOrders, "Delegación")
+Rel(routerOrders, validation, "Valida payload")
+Rel(routerOrders, serviceOrders, "createOrder(data)")
+Rel(serviceOrders, db, "Insert document")
+Rel(serviceOrders, pub, "publish OrderCreated")
+Rel(pub, rabbitmq, "fanout exchange")

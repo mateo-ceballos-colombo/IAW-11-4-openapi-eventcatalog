@@ -1,0 +1,9 @@
+%% C4 Context Diagram
+C4Context
+Person(client, "Cliente", "Usuario que crea órdenes")
+System(orderService, "Order Service", "Expone API REST y publica eventos")
+System_Ext(rabbitmq, "RabbitMQ", "Broker de mensajería")
+System_Ext(mongodb, "MongoDB", "Base de datos de órdenes")
+Rel(client, orderService, "HTTP /orders")
+Rel(orderService, rabbitmq, "Publica OrderCreated / (futuro) OrderCancelled")
+Rel(orderService, mongodb, "Persistencia CRUD órdenes")
