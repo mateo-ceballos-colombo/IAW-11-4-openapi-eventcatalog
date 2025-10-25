@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API REST para gestión de órdenes y emisión de eventos OrderCreated.
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:3100
 tags:
   - name: system
     description: Endpoints de sistema y monitoreo.

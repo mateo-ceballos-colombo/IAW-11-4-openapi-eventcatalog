@@ -69,5 +69,12 @@
       "name": "users"
     }
   ],
-  "entries": {}
+  "entries": {
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/node_modules/deepmerge/changelog.md": "changelogs",
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/node_modules/flat-cache/changelog.md": "changelogs",
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/node_modules/zod-to-json-schema/changelog.md": "changelogs",
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/node_modules/react-syntax-highlighter/node_modules/lowlight/changelog.md": "changelogs",
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/node_modules/file-entry-cache/changelog.md": "changelogs",
+    "file:///c:/users/mceballos/documents/utn%205to/iaw/semana%2011/iaw-11-4-openapi-eventcatalog/eventcatalog/events/ordercreated/index.mdx": "events"
+  }
 }
