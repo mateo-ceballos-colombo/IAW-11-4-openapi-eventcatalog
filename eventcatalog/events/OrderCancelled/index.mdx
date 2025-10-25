@@ -1,0 +1,97 @@
+---
+id: OrderCancelled
+name: OrderCancelled
+version: v1
+summary: Representa la cancelación exitosa de una orden previamente creada. Producido por el servicio Order Service al procesar DELETE /orders/{id}.
+producers:
+  - order-service
+---
+
+# Evento: OrderCancelled
+
+Representa la cancelación exitosa de una orden previamente creada. Producido por el servicio `Order Service` al procesar `DELETE /orders/{id}`.
+
+| Campo        | Tipo        | Obligatorio | Descripción |
+|--------------|-------------|-------------|-------------|
+| id           | string      | Sí          | Identificador único de la orden cancelada |
+| customerName | string      | Sí          | Nombre del cliente |
+| items        | Item[]      | Sí          | Ítems de la orden (snapshot al momento de cancelación) |
+| total        | number      | Sí          | Total de la orden |
+| createdAt    | string(ISO) | Sí          | Timestamp de creación original |
+| cancelledAt  | string(ISO) | Sí          | Timestamp de cancelación |
+| status       | string      | Sí          | Estado actual (CANCELLED) |
+| reason       | string      | No          | Motivo de cancelación (opcional, para análisis) |
+
+`Item`:
+| Campo    | Tipo   | Obligatorio | Descripción |
+|----------|--------|-------------|-------------|
+| sku      | string | Sí          | Código del producto |
+| quantity | number | Sí          | Cantidad solicitada |
+| price    | number | Sí          | Precio unitario |
+
+## Productor
+- Order Service API (bounded context: Orders)
+
+## Consumidores actuales
+- N/A (pendiente de implementación)
+
+## Consumidores potenciales
+- Inventario (restaurar stock reservado)
+- Facturación (revertir cargos o notas de crédito)
+- Notificaciones (email/SMS al cliente)
+- Analytics (métricas de abandono)
+- CRM (seguimiento de insatisfacción)
+
+## Ejemplo de payload
+```json
+{
+  "id": "68f6412b11e09e3e143d4f49",
+  "customerName": "Alice",
+  "items": [{ "sku": "A1", "quantity": 2, "price": 10 }],
+  "total": 20,
+  "createdAt": "2025-10-20T14:03:23.686Z",
+  "cancelledAt": "2025-10-20T15:30:12.450Z",
+  "status": "CANCELLED",
+  "reason": "Customer request",
+  "schemaVersion": "1.0"
+}
+```
+
+## Semántica
+Indica un hecho ya ocurrido (evento en pasado). La orden ya fue marcada como `CANCELLED` en la base de datos. Este evento NO garantiza que procesos compensatorios (como devolución de inventario) ya hayan ocurrido, sólo que el estado cambió.
+
+## Esquema formal
+Ver `schema.json` (alineado con el modelo `Order` pero agregando `cancelledAt` y `reason` opcional). Mantener compatibilidad: agregar campos nuevos como opcionales para evitar romper consumidores existentes.
+
+## Versionado
+- Versión inicial: `v1` (campo `schemaVersion` explícito recomendado en payload).
+- Cambios incompatibles futuros => crear `OrderCancelledV2` o incluir lógica de migración en consumidores con detección de `schemaVersion`.
+- Política: **additive-only** durante v1. Nuevos campos opcionales (ej. `cancelledBy`, `refundStatus`) son compatibles.
+
+## Idempotencia
+El identificador `id` permite a consumidores deduplicar si llegan mensajes repetidos. Los consumidores deben verificar si ya procesaron una cancelación para esta orden (usar cache local o base de datos idempotente).
+
+## Motivación
+Desacoplar la cancelación de órdenes de procesos posteriores como:
+- Liberación de inventario reservado
+- Procesamiento de reembolsos
+- Notificaciones al cliente
+- Actualización de métricas de negocio
+
+Permite que cada bounded context reaccione según su lógica sin bloquear la respuesta HTTP al cliente.
+
+## Riesgos y Consideraciones
+- **Orden de eventos**: Un consumidor puede recibir `OrderCancelled` antes de procesar `OrderCreated` si hay latencias disparejas. Implementar buffering o verificación de precondiciones.
+- **Cancelación múltiple**: Aunque la API previene cancelar dos veces, los consumidores deben manejar duplicados (idempotencia).
+- **Tamaño del payload**: Mantener el snapshot completo de items puede ser costoso para órdenes grandes. Considerar publicar solo el `id` y dejar que consumidores consulten la API si necesitan detalles.
+- **Datos sensibles**: Si `reason` contiene información del cliente, aplicar sanitización o encriptación.
+- **Compatibilidad**: Agregar campos sin romper consumidores (siempre opcional o con defaults).
+
+## Relación con otros eventos
+- **Ver también**: [OrderCreated](../OrderCreated/README.md) - Evento de creación de orden (precede a OrderCancelled).
+- **Futuro**: Considerar eventos adicionales como `OrderShipped`, `OrderCompleted` para cubrir todo el ciclo de vida.
+
+## Changelog
+| Fecha      | Versión | Cambio                                           | Notas                          |
+|------------|---------|--------------------------------------------------|--------------------------------|
+| 2025-10-25 | v1      | Versión inicial (documentación)                  | Sin implementación en código   |

@@ -131,8 +131,14 @@ paths:
       summary: Cancela una orden existente (status = CANCELLED)
       description: |
         Marca la orden como CANCELLED si existe y devuelve la versión modificada.
-        Futuro: publicará el evento OrderCancelled (ver Event Catalog en `eventcatalog/events/OrderCreated/` para relación y plantilla).
-        Compatibilidad: la transición CREATED -> CANCELLED es aditiva y no elimina campos existentes.
+        
+        **Versión futura**: Este endpoint publicará el evento `OrderCancelled` en RabbitMQ, permitiendo que servicios downstream (inventario, facturación, notificaciones) reaccionen de forma desacoplada a la cancelación.
+        
+        Ver documentación del evento en el Event Catalog: `eventcatalog/events/OrderCancelled/README.md` o navegando a http://localhost:3000 (Event Catalog dev) → Discover > Events > OrderCancelled.
+        
+        **Compatibilidad**: La transición CREATED → CANCELLED es aditiva y no elimina campos existentes. Los consumidores pueden detectar el cambio inspeccionando el campo `status`.
+        
+        **Objetivo pedagógico**: Demostrar cómo documentar endpoints que evolucionarán para soportar arquitectura event-driven, manteniendo sincronía entre OpenAPI y Event Catalog.
       operationId: cancelOrder
       tags: [orders]
       parameters:
@@ -176,7 +182,14 @@ paths:
   /orders/stats:
     get:
       summary: Estadísticas agregadas de órdenes
-      description: Devuelve cantidad total de órdenes, revenue acumulado y promedio por orden. Útil para monitoreo simple sin analytics externo.
+      description: |
+        Devuelve cantidad total de órdenes, revenue acumulado y promedio por orden. Útil para monitoreo simple sin analytics externo.
+        
+        **Objetivo pedagógico**: Este endpoint demuestra cómo realizar agregaciones básicas directamente en la API sin depender de herramientas de analytics externas. Es ideal para dashboards internos, alertas simples o pruebas de concepto.
+        
+        En aplicaciones a escala, considerar delegar estas métricas a sistemas especializados (ej. data warehouse, time-series DB) para evitar impacto en la base de datos transaccional.
+        
+        **Ejemplo de uso**: Monitoreo de salud del negocio, KPIs operacionales, alertas cuando `avgOrderValue` cae por debajo de un umbral.
       operationId: getOrderStats
       tags: [orders]
       responses:

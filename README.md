@@ -346,6 +346,37 @@ Troubleshooting rápido:
 - No aparece el log del consumidor: confirma que `DISABLE_RABBITMQ` no está en `true` y que el puerto 5672 no está bloqueado.
 - Cola sin mensajes: el consumidor hace `ack` inmediatamente; para inspeccionar payloads detené temporalmente el ack (solo para depurar) o crea una segunda cola con otra binding.
 
+#### Extender logs para nuevos eventos
+Cuando agregues nuevos eventos (ej. `OrderCancelled`, `OrderShipped`), seguí estos pasos para que aparezcan en los logs:
+
+1. **Publicar el evento**: En el servicio correspondiente (ej. `orders.service.ts`), invocar la función de publicación del nuevo evento (similar a `publishOrderCreated`).
+
+2. **Crear consumidor**: En `src/messaging/rabbit.ts`, agregar una nueva función `setupConsumerNombreEvento()` que:
+   - Declara/usa una cola específica (ej. `orders.cancelled.log`)
+   - Hace binding al exchange correspondiente
+   - Registra el mensaje recibido en consola con el formato `[Consumer] NombreEvento received: <id>`
+
+3. **Invocar en inicialización**: Llamar a la nueva función setup desde `initRabbit()` para que el consumidor esté activo al iniciar la aplicación.
+
+4. **Verificar**: Crear una acción que dispare el evento (ej. `DELETE /orders/{id}` para `OrderCancelled`) y observar la consola.
+
+**Patrón recomendado**:
+```typescript
+async function setupOrderCancelledConsumer() {
+  if (!channel) return;
+  const q = await channel.assertQueue('orders.cancelled.log', { durable: true });
+  await channel.bindQueue(q.queue, 'orders', '');
+  await channel.consume(q.queue, (msg) => {
+    if (!msg) return;
+    const order = JSON.parse(msg.content.toString());
+    console.log('[Consumer] OrderCancelled received:', order.id);
+    channel!.ack(msg);
+  });
+}
+```
+
+Esta estrategia mantiene un registro centralizado y observable de todos los eventos del dominio sin necesidad de herramientas externas complejas en etapas tempranas del desarrollo.
+
 ### 8.6 Live reload de Swagger UI (opcional)
 La API ya expone automáticamente la documentación en `http://localhost:3100/docs` al iniciar (no tenés que hacer nada extra). Este paso es **opcional** sólo si querés trabajar en modo *live reload* sobre `openapi.yaml` y ver los cambios al guardar sin reiniciar la API.
 

@@ -2,14 +2,12 @@
 id: OrderCreated
 name: OrderCreated
 version: v1
-summary: Evento emitido al crear una orden (estado CREATED) en el Order Service.
+summary: Representa la creación exitosa de una orden. Producido por el servicio Order Service al procesar POST /orders.
 producers:
   - order-service
 ---
 
-<!-- Copia del contenido de README.md para cumplir con patrón index.md requerido por EventCatalog -->
-
-# OrderCreated
+# Evento: OrderCreated
 
 Representa la creación exitosa de una orden. Producido por el servicio `Order Service` al procesar `POST /orders`.
 
@@ -41,26 +39,41 @@ Representa la creación exitosa de una orden. Producido por el servicio `Order S
 ## Ejemplo de payload
 ```json
 {
-  "id": "68f6412b11e09e3e143d4f49",
-  "customerName": "Alice",
-  "items": [{ "sku": "A1", "quantity": 2, "price": 10 }],
-  "total": 20,
-  "createdAt": "2025-10-20T14:03:23.686Z",
-  "status": "CREATED"
+	"id": "68f6412b11e09e3e143d4f49",
+	"customerName": "Alice",
+	"items": [{ "sku": "A1", "quantity": 2, "price": 10 }],
+	"total": 20,
+	"createdAt": "2025-10-20T14:03:23.686Z",
+	"status": "CREATED",
+	"schemaVersion": "1.0"
 }
 ```
 
+**Nota sobre `schemaVersion`**: Campo opcional que permite identificar la versión del esquema del evento. Los consumidores pueden usar este campo para aplicar lógica de migración o compatibilidad cuando se introduzcan cambios. Si no está presente, se asume `v1.0`.
+
+## Semántica
+Indica un hecho ya ocurrido (evento en pasado). No garantiza procesos posteriores (facturación, inventario), sólo que la orden fue persistida.
+
 ## Esquema formal
-Ver `schema.json`.
+Ver `schema.json` (alineado a OpenAPI `Order` schema). Mantener compatibilidad: agregar campos nuevos como opcionales.
 
 ## Versionado
-- v1 inicial.
+- Versión inicial: `v1` (campo `schemaVersion` opcional; se asume v1.0 si no está presente).
+- **Regla de compatibilidad**: Política **additive-only** para v1 — nuevos campos deben ser opcionales para no romper consumidores existentes.
+- Cambios incompatibles futuros => crear `OrderCreatedV2` o incluir campo `schemaVersion` explícito con lógica de migración en consumidores.
 
 ## Idempotencia
-El identificador `id` permite deduplicar.
+El identificador `id` permite a consumidores deduplicar si llegan mensajes repetidos.
 
 ## Motivación
-Desacoplar la creación de órdenes de procesos posteriores.
+Desacoplar la creación de órdenes de procesos posteriores (facturación, envío, analytics) mediante arquitectura orientada a eventos.
+
+## Riesgos y Consideraciones
+- Payload grande (muchos ítems) puede impactar throughput: considerar publicar sólo campos esenciales + correlación.
+- Evitar filtrado lógico en consumidores basado en campos que podrían cambiar (usar hechos inmutables).
+
+## Relación con otros eventos
+- **Ver también**: [OrderCancelled](http://localhost:3000/docs/events/OrderCancelled/v1) - Evento de cancelación de orden (puede seguir a OrderCreated).
 
 ## Changelog
 | Fecha | Versión | Cambio | Notas |

@@ -18,7 +18,13 @@
       }
     },
     "total": {"type": "number"},
-    "createdAt": {"type": "string", "format": "date-time"}
+    "createdAt": {"type": "string", "format": "date-time"},
+    "status": {"type": "string", "enum": ["CREATED"]},
+    "schemaVersion": {
+      "type": "string",
+      "description": "Versión del esquema del evento (opcional). Se asume 1.0 si no está presente.",
+      "default": "1.0"
+    }
   },
   "required": ["id", "customerName", "items", "total", "createdAt"]
 }

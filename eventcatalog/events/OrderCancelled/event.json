@@ -1,0 +1,9 @@
+{
+  "name": "OrderCancelled",
+  "version": "v1",
+  "summary": "Evento emitido cuando una orden es cancelada exitosamente.",
+  "producer": "order-service",
+  "schemaFile": "schema.json",
+  "tags": ["orders", "cancellation", "lifecycle"],
+  "visibility": "public"
+}

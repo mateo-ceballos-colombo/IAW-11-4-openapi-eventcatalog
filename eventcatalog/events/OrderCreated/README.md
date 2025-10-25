@@ -35,9 +35,12 @@ Representa la creación exitosa de una orden. Producido por el servicio `Order S
 	"items": [{ "sku": "A1", "quantity": 2, "price": 10 }],
 	"total": 20,
 	"createdAt": "2025-10-20T14:03:23.686Z",
-	"status": "CREATED"
+	"status": "CREATED",
+	"schemaVersion": "1.0"
 }
 ```
+
+**Nota sobre `schemaVersion`**: Campo opcional que permite identificar la versión del esquema del evento. Los consumidores pueden usar este campo para aplicar lógica de migración o compatibilidad cuando se introduzcan cambios. Si no está presente, se asume `v1.0`.
 
 ## Semántica
 Indica un hecho ya ocurrido (evento en pasado). No garantiza procesos posteriores (facturación, inventario), sólo que la orden fue persistida.
@@ -46,8 +49,9 @@ Indica un hecho ya ocurrido (evento en pasado). No garantiza procesos posteriore
 Ver `schema.json` (alineado a OpenAPI `Order` schema). Mantener compatibilidad: agregar campos nuevos como opcionales.
 
 ## Versionado
-- Versión inicial: `v1` (no se incluye un campo explícito; se asume v1 mientras no existan breaking changes).
-- Cambios incompatibles futuros => crear `OrderCreatedV2` o incluir campo `schemaVersion`.
+- Versión inicial: `v1` (campo `schemaVersion` opcional; se asume v1.0 si no está presente).
+- **Regla de compatibilidad**: Política **additive-only** para v1 — nuevos campos deben ser opcionales para no romper consumidores existentes.
+- Cambios incompatibles futuros => crear `OrderCreatedV2` o incluir campo `schemaVersion` explícito con lógica de migración en consumidores.
 
 ## Idempotencia
 El identificador `id` permite a consumidores deduplicar si llegan mensajes repetidos.
@@ -58,6 +62,9 @@ Desacoplar la creación de órdenes de procesos posteriores (facturación, enví
 ## Riesgos y Consideraciones
 - Payload grande (muchos ítems) puede impactar throughput: considerar publicar sólo campos esenciales + correlación.
 - Evitar filtrado lógico en consumidores basado en campos que podrían cambiar (usar hechos inmutables).
+
+## Relación con otros eventos
+- **Ver también**: [OrderCancelled](../OrderCancelled/README.md) - Evento de cancelación de orden (puede seguir a OrderCreated).
 
 ## Changelog
 | Fecha | Versión | Cambio | Notas |

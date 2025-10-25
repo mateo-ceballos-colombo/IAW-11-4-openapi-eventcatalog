@@ -11,8 +11,8 @@
     "test": "jest",
     "test:e2e": "jest --config jest.config.e2e.json",
     "swagger": "npx swagger-ui-watcher ./openapi.yaml --interface swagger-ui",
-  "catalog:dev": "npx eventcatalog dev",
-  "catalog:build": "npx eventcatalog build",
+    "catalog:dev": "npx eventcatalog dev",
+    "catalog:build": "npx eventcatalog build",
     "lint:openapi": "npx spectral lint openapi.yaml",
     "challenge": "echo 'Explora agregar OrderCancelled y saga de pago'",
     "scaffold:event": "node scripts/scaffold-event.mjs"
